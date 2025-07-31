@@ -26,6 +26,7 @@ import { BookingType } from "@/types/store/booking";
 import { TravellerState } from "@/types/app/booking";
 import { ProductDetailState } from "@/types/app/product";
 import { getMarginAction } from "@/store/financial";
+import { validPromoAction } from "@/store/promo";
 
 export const useAllStatusBooking = (id: string, type: string) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -38,37 +39,35 @@ export const useAllStatusBooking = (id: string, type: string) => {
   const [product, setProduct] = useState<ProductDetailState>(
     {} as ProductDetailState
   );
-  const [booking, setBooking] = useState<BookingType>({
-    bookingDetails: {
-      ...initalBooking.bookingDetails,
-    },
-  });
+  const [booking, setBooking] = useState<BookingType>(initalBooking);
   const [checkout, setCheckout] = useState<boolean>(false);
   const [clientSecret, setClientSecret] = useState<string>("");
-  const [currentStep, setCurrentStep] = useState<number>(-1);
-  const [maxStepReached, setMaxStepReached] = useState<number>(0);
+  const [step, setStep] = useState<{ current: number; max: number }>({
+    current: -1,
+    max: 0,
+  });
+  const [promo, setPromo] = useState("");
   const [err, setErr] = useState<string>("");
 
   const fetchInitialData = async (id: string) => {
     await dispatch(getMarginAction({}));
     await dispatch(getDestinationTitlesAction({}));
     const { payload } = await dispatch(getProductIdAction(`${id}`));
-    if (payload && "startingLocations" in payload) {
-      setProduct(payload as ProductDetailState);
+    console.log(payload);
+    if (payload?.["data"]) {
+      setProduct(payload.data as ProductDetailState);
       if (type === "create")
         setBooking({
           ...booking,
-          bookingDetails: {
-            ...booking.bookingDetails,
-            mainTraveller: {
-              ...booking.bookingDetails.mainTraveller,
-              firstname: user.firstname,
-              lastname: user.lastname,
-              email: user.email,
-            },
-            productId: `${id}`,
-            startingLocationId: payload.startingLocations[0]?._id as string,
+          mainTraveller: {
+            ...booking.mainTraveller,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
           },
+          productId: id,
+          startTime: payload.data.tours[0].times[0],
+          tourId: payload.data.tours[0]?._id,
         });
     }
     if (user.role === "Travel Agent")
@@ -78,16 +77,9 @@ export const useAllStatusBooking = (id: string, type: string) => {
   const fetchBooking = async (id: string) => {
     await dispatch(getMarginAction({}));
     const { payload } = await dispatch(getBookingByIdAction(id));
-    if (payload && "bookingDetails" in payload) {
-      const bookingDetails: BookingType["bookingDetails"] =
-        payload.bookingDetails;
-      const { _id, ...newbookingDetails } = bookingDetails;
-      setBooking((prev) => ({
-        bookingDetails: newbookingDetails,
-      }));
-      if (payload && "productId" in payload.bookingDetails) {
-        await fetchInitialData(payload.bookingDetails.productId);
-      }
+    if (payload?.["data"]) {
+      setBooking((pre) => ({ ...pre, ...payload.data.booking }));
+      setProduct((pre) => ({ ...pre, ...payload.data.product }));
     }
   };
 
@@ -97,41 +89,65 @@ export const useAllStatusBooking = (id: string, type: string) => {
   }, [id]);
 
   useEffect(() => {
-    if (currentStep > maxStepReached) setMaxStepReached(currentStep);
-  }, [currentStep, maxStepReached]);
+    if (step.current > step.max)
+      setStep((pre) => ({ ...pre, max: step.current }));
+  }, [step]);
 
   const onStepClick = (index: number) => {
-    setCurrentStep(index);
+    setStep((pre) => ({ ...pre, current: index }));
     if (index === 0) {
-      const adult = Number(booking.bookingDetails.adultCount);
-      const child = Number(booking.bookingDetails.childCount);
-      let otherTravellers = Array.from({ length: adult + child - 1 }).map(
-        (_) => ({ firstname: "", lastname: "", birthDate: "" })
-      );
-      handleBookingDetails("otherTravellers", otherTravellers);
+      const adult = Number(booking.adultCount);
+      const child = Number(booking.childCount);
+      const requiredTravellers = adult + child - 1;
+      const currentTravellers = booking.otherTravellers || [];
+      if (currentTravellers.length < requiredTravellers) {
+        const newTravellers = Array.from({
+          length: requiredTravellers - currentTravellers.length,
+        }).map(() => ({
+          firstname: "",
+          lastname: "",
+          birthDate: "",
+        }));
+        const updatedTravellers = [...currentTravellers, ...newTravellers];
+        handleBookingDetails("otherTravellers", updatedTravellers);
+      } else {
+        handleBookingDetails(
+          "otherTravellers",
+          currentTravellers.slice(0, requiredTravellers)
+        );
+      }
     }
+  };
+
+  const applyPromo = async () => {
+    const { payload } = await dispatch(validPromoAction(promo));
+    if (payload?.["data"]) {
+      toast.success(`${payload.message}`);
+      setBooking((pre) => ({
+        ...pre,
+        promoCode: payload.data._id,
+        promoPercent: payload.data.percent,
+      }));
+      setPromo("");
+    } else toast.error(`${payload.error}`);
+    console.log(payload);
   };
 
   const handleBookingDetails = (
     key: string,
     value: string | number | TravellerState[]
   ) => {
-    if (key === "bookingDate" && typeof value === "string") {
+    if (key === "tourId" && typeof value === "string") {
       setBooking((prev) => ({
         ...prev,
-        bookingDetails: {
-          ...prev.bookingDetails,
-          [key]: value,
-          startTime: product.timeSlots.times[0],
-        },
+        [key]: value,
+        startTime:
+          product.tours?.find((tour) => tour._id === value)?.times[0] ?? "",
       }));
     } else {
       setBooking((prev) => ({
         ...prev,
-        bookingDetails: {
-          ...prev.bookingDetails,
-          [key]: value,
-        },
+        [key]: value,
       }));
     }
   };
@@ -139,47 +155,37 @@ export const useAllStatusBooking = (id: string, type: string) => {
   const handleBookingMintraveler = (phoneNumber: string, country: string) => {
     setBooking((prev) => ({
       ...prev,
-      bookingDetails: {
-        ...prev.bookingDetails,
-        mainTraveller: {
-          ...prev.bookingDetails.mainTraveller,
-          phoneNumber,
-          country,
-        },
+      mainTraveller: {
+        ...prev.mainTraveller,
+        phoneNumber,
+        country,
       },
     }));
   };
 
   const updateNestedBookingDetails = (
-    type: keyof BookingType["bookingDetails"],
+    type: keyof BookingType,
     key: string,
     value: string | boolean | undefined
   ) => {
     setBooking((prev) => ({
       ...prev,
-      bookingDetails: {
-        ...prev.bookingDetails,
-        [type]: {
-          ...(typeof prev.bookingDetails[type] === "object" &&
-          prev.bookingDetails[type] !== null
-            ? prev.bookingDetails[type]
-            : {}),
-          [key]: value,
-        },
+      [type]: {
+        ...(typeof prev?.[type] === "object" && prev?.[type] !== null
+          ? prev?.[type]
+          : {}),
+        [key]: value,
       },
     }));
   };
 
   const updateBookingDetails = (
-    type: keyof BookingType["bookingDetails"],
+    type: keyof BookingType,
     value: string | boolean | undefined
   ) => {
     setBooking((prev) => ({
       ...prev,
-      bookingDetails: {
-        ...prev.bookingDetails,
-        [type]: value,
-      },
+      [type]: value,
     }));
   };
 
@@ -188,11 +194,12 @@ export const useAllStatusBooking = (id: string, type: string) => {
   };
 
   const isButtonDisabled = () => {
-    const processStep = currentStep;
+    const processStep = step.current;
+    const tour = product.tours.find((tour) => tour._id === booking.tourId);
     switch (processStep) {
       case 0:
         const { firstname, lastname, phoneNumber, lang, email, birthDate } =
-          booking.bookingDetails.mainTraveller;
+          booking.mainTraveller;
         if (
           firstname === "" ||
           lastname === "" ||
@@ -208,10 +215,10 @@ export const useAllStatusBooking = (id: string, type: string) => {
           allergyQuestion: allergy,
           mobilityQuestion: mobility,
           medicalQuestion: medical,
-        } = booking.bookingDetails.questions;
+        } = booking.questions;
 
-        const { meetingLocation } = booking.bookingDetails;
-        const { isPrivate } = product;
+        const { meetingLocation } = booking;
+        // const { isPrivate } = product;
 
         const { allergyQuestion, mobilityQuestion, medicalQuestion } =
           product.bookingDetails;
@@ -219,11 +226,11 @@ export const useAllStatusBooking = (id: string, type: string) => {
           (allergyQuestion && allergy === "") ||
           (mobilityQuestion && mobility === "") ||
           (medicalQuestion && medical === "") ||
-          (!meetingLocation.length && isPrivate)
+          (!meetingLocation.length && tour?.isPrivate)
         )
           return true;
         else {
-          const validationMessages = booking.bookingDetails.otherTravellers
+          const validationMessages = booking.otherTravellers
             .map((traveler: TravellerState, index: number) => {
               const { firstname, lastname, birthDate } = traveler;
               if (!firstname || !lastname || !birthDate) {
@@ -256,17 +263,17 @@ export const useAllStatusBooking = (id: string, type: string) => {
   };
 
   const handleStepAdvance = async (_id?: string) => {
-    if (!emailPattern.test(booking.bookingDetails.mainTraveller.email || "")) {
+    if (!emailPattern.test(booking.mainTraveller.email || "")) {
       toast.error("Invalid email");
       return;
     }
-    if (currentStep < BOOKINGSTEPS.length) {
-      setCurrentStep((prev) => prev + 1);
+    if (step.current < BOOKINGSTEPS.length) {
+      setStep((prev) => ({ ...prev, current: prev.current + 1 }));
     }
-    if (currentStep === BOOKINGSTEPS.length - 2) {
+    if (step.current === BOOKINGSTEPS.length - 2) {
       setCheckout(true);
     }
-    if (currentStep === BOOKINGSTEPS.length - 1) {
+    if (step.current === BOOKINGSTEPS.length - 1) {
       setClientSecret("");
       if (err === "" || err === undefined) {
         const data: BookingType = {
@@ -279,13 +286,13 @@ export const useAllStatusBooking = (id: string, type: string) => {
         );
         if (payload?.["error"]) {
           toast.error(payload.error);
-          setCurrentStep(currentStep - 1);
+          setStep((prev) => ({ ...prev, current: prev.current - 1 }));
         } else if (
           payload?.["message"] &&
           payload.message === "Network Error"
         ) {
           toast.error(payload.message);
-          setCurrentStep(2);
+          setStep((prev) => ({ ...prev, current: 2 }));
         } else if (payload?.["clientSecret"])
           setClientSecret(payload.clientSecret);
         else if (payload?.["message"]) {
@@ -307,9 +314,10 @@ export const useAllStatusBooking = (id: string, type: string) => {
     booking,
     checkout,
     clientSecret,
-    currentStep,
-    maxStepReached,
-    setCurrentStep,
+    step,
+    promo,
+    setStep,
+    setPromo,
     onStepClick,
     handleBookingDetails,
     handleBookingMintraveler,
@@ -318,5 +326,6 @@ export const useAllStatusBooking = (id: string, type: string) => {
     handleCheckout,
     isButtonDisabled,
     handleStepAdvance,
+    applyPromo,
   };
 };

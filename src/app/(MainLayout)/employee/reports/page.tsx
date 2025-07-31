@@ -19,6 +19,7 @@ import DropZoneCommon from "@/Common/DropZoneCommon";
 import { userState } from "@/store/auth";
 import { BookingDetails } from "@/types/store/booking";
 import Link from "next/link";
+import Select from "react-select";
 
 const page = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -26,7 +27,7 @@ const page = () => {
   const user = useSelector(userState);
   const initialReport: reportState = {
     productId: "",
-    bookingId: "",
+    bookingId: [],
     earn: 0,
     break: 0,
     feedback: "",
@@ -49,6 +50,7 @@ const page = () => {
     const { payload } = await dispatch(readAllReportsAction({}));
     if (payload?.["data"]) {
       setReports(payload.data);
+      console.log("Reports:", payload.data);
     } else {
       console.error("Unexpected payload:", payload);
     }
@@ -88,16 +90,13 @@ const page = () => {
             {report.createdBy?.firstname + " " + report.createdBy?.lastname}
           </td>
         )}
-        <td className="text-center text-nowrap">{report.productId?.name}</td>
-        <td className="text-center text-nowrap">
-          {moment(report.bookingId?.bookingDate).format("DD-MM-YYYY")}
+        <td className="text-center">
+          {report.bookingId[0]?.bokun?.productName}
         </td>
         <td className="text-center text-nowrap">
-          {report.bookingId?.startTime}
+          {moment(report.bookingId[0]?.bookingDate).format("DD-MM-YYYY")}
         </td>
-        <td className="text-center text-nowrap">
-          {report.bookingId?.mainTraveller?.email}
-        </td>
+        <td className="text-center text-nowrap">{report.bookingId?.length}</td>
       </tr>
     );
   };
@@ -110,14 +109,14 @@ const page = () => {
     handleReport("files", files);
   };
 
-  const handleProductNameForReport = (bookingId: string) => {
+  const handleProductNameForReport = (bookingId: string[]) => {
     setReport({
       ...report,
       data: {
         ...report.data,
-        bookingId,
+        bookingId: bookingId,
         productId:
-          bookings.find((booking) => booking._id === bookingId)?.productId ??
+          bookings.find((booking) => booking._id === bookingId[0])?.productId ??
           "",
       },
     });
@@ -156,274 +155,241 @@ const page = () => {
 
   return (
     <RoleProvider target="Booking">
-      <div className="container-fluid">
-        <div className="row">
-          <div className="col-sm-12">
-            <div className="card">
-              <div className="card-header">
-                <div className="d-flex justify-content-between">
-                  <h3>My Reports</h3>
-                  <button
-                    className="align-items-center btn btn-theme"
-                    type="button"
-                    onClick={formatReport}
-                  >
-                    New Report
-                  </button>
-                </div>
-              </div>
-              <div className="card-body">
-                <div className="row">
-                  <>
-                    <div className="col-sm-6">
-                      {loading ? (
-                        <PageLoader />
-                      ) : reports.length === 0 ? (
-                        <p>No Data</p>
-                      ) : (
-                        <div className="table-table-responsive table-desi">
-                          <table className="Booking-table table table-striped">
-                            <thead>
-                              <tr>
-                                {user.role === "Admin" && (
-                                  <th className="text-center text-nowrap">
-                                    Guide name
-                                  </th>
-                                )}
-                                <th className="text-center text-nowrap">
-                                  TourName
-                                </th>
-                                <th className="text-center text-nowrap">
-                                  TourDate
-                                </th>
-                                <th className="text-center text-nowrap">
-                                  StartTime
-                                </th>
-                                <th className="text-center text-nowrap">
-                                  Main Traveler
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {reports.map((report) => renderReportRow(report))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-sm-6">
-                      <form className="theme-form mega-form">
-                        {typeof report.data.productId === "object" &&
-                        report.data.productId.name ? (
-                          <input
-                            className="form-control"
-                            type="text"
-                            value={`${report.data.productId.name} - ${report.id}`}
-                            disabled
-                          />
-                        ) : (
-                          <select
-                            className="form-control"
-                            value={report.data.bookingId}
-                            onChange={(e) =>
-                              handleProductNameForReport(e.target.value)
-                            }
-                          >
-                            <option value="">--Select Booking--</option>
-                            {bookings.map((booking, index) => (
-                              <option key={index} value={booking._id}>
-                                {booking.productName +
-                                  " (" +
-                                  moment(booking.bookingDate).format(
-                                    "DD/MM/YYYY"
-                                  ) +
-                                  " - " +
-                                  booking.mainTraveller.email +
-                                  ")"}
-                              </option>
-                            ))}
-                          </select>
+      <div className="card">
+        <div className="card-header">
+          <div className="d-flex justify-content-between">
+            <h3>My Reports</h3>
+            <button
+              className="align-items-center btn btn-theme"
+              type="button"
+              onClick={formatReport}
+            >
+              New Report
+            </button>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="row">
+            <div className="col-sm-8">
+              {loading ? (
+                <PageLoader />
+              ) : reports.length === 0 ? (
+                <p>No Data</p>
+              ) : (
+                <div className="table-table-responsive table-desi">
+                  <table className="Booking-table table table-striped">
+                    <thead>
+                      <tr>
+                        {user.role === "Admin" && (
+                          <th className="text-center text-nowrap">
+                            Guide name
+                          </th>
                         )}
-                        <div className="mb-3">
-                          <label className="form-label-title">
-                            1. Leave a feedback on this tour
-                          </label>
-                          <textarea
-                            className="form-control"
-                            value={report.data.feedback}
-                            onChange={(e) =>
-                              handleReport("feedback", e.target.value)
-                            }
-                            disabled={report.id !== ""}
-                          />
-                        </div>
-                        <div className="mb-3 row">
-                          <div className="col-sm-6">
-                            <label className="form-label-title">
-                              2. When did the tour start?
-                            </label>
-                            <div className="d-flex align-items-center g-3">
-                              <select
-                                className="form-control"
-                                value={report.data.startTime}
-                                onChange={(e) =>
-                                  handleReport("startTime", e.target.value)
-                                }
-                                disabled={report.id !== ""}
-                              >
-                                {timeOptions}
-                              </select>
-                            </div>
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="form-label-title">
-                              3. When did the tour end?
-                            </label>
-                            <div className="d-flex align-items-center g-3">
-                              <select
-                                className="form-control"
-                                value={report.data.endTime}
-                                onChange={(e) =>
-                                  handleReport("endTime", e.target.value)
-                                }
-                                disabled={report.id !== ""}
-                              >
-                                {timeOptions}
-                              </select>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mb-3 row">
-                          <div className="col-sm-6">
-                            <label
-                              className="form-label-title"
-                              htmlFor="breakTime"
-                            >
-                              4. How long was your break?
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              max={24}
-                              className="form-control"
-                              value={report.data.break}
-                              onChange={(e) =>
-                                handleReport(
-                                  "break",
-                                  Math.max(
-                                    0,
-                                    Math.min(24, parseFloat(e.target.value))
-                                  )
-                                )
-                              }
-                              disabled={report.id !== ""}
-                            />
-                          </div>
-                          <div className="col-sm-6">
-                            <label className="form-label-title">
-                              5. How much did you earn as tips?
-                            </label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="form-control"
-                              value={report.data.earn}
-                              onChange={(e) =>
-                                handleReport(
-                                  "earn",
-                                  Math.max(0, parseFloat(e.target.value))
-                                )
-                              }
-                              disabled={report.id !== ""}
-                            />
-                          </div>
-                        </div>
-                        <div className="mb-3">
-                          <label className="form-label-title" htmlFor="files">
-                            6. Did you have any expenses? If so, upload the PDF
-                            here
-                          </label>
-                          {report.id === "" ? (
-                            <DropZoneCommon
-                              value={report.data.files}
-                              accept={{ "application/pdf": [] }}
-                              onFilesSelected={handleFilesSelected}
-                              multiple={false}
-                            />
-                          ) : (
-                            report.data.files[0] && (
-                              <div className="w-100">
-                                <Link
-                                  className={`align-items-center justify-content-center btn btn-theme`}
-                                  type="button"
-                                  href={`${report.data.files[0]}`}
-                                >
-                                  View PDF
-                                </Link>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </form>
-                      {report.id === "" && (
-                        <>
-                          <label className="form-label-title">
-                            <input
-                              className="checkbox_animated"
-                              type="checkbox"
-                              checked={report.check}
-                              onChange={(e) =>
-                                setReport({
-                                  ...report,
-                                  check: e.target.checked,
-                                })
-                              }
-                            />
-                            Send and can't update Report
-                          </label>
-                          <button
-                            type="button"
-                            className="btn btn-theme"
-                            onClick={saveReport}
-                            disabled={!report.check}
-                          >
-                            Save
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </>
-                  <Modal
-                    isOpen={modalOpen}
-                    toggle={toggleModal}
-                    centered
-                    size="lg"
-                  >
-                    <ModalHeader toggle={toggleModal}></ModalHeader>
-                    <ModalBody className="p-4"></ModalBody>
-                    <ModalFooter>
-                      <Button
-                        color="secondary"
-                        type="button"
-                        onClick={toggleModal}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        color="primary"
-                        type="button"
-                        onClick={toggleModal}
-                      >
-                        Update
-                      </Button>
-                    </ModalFooter>
-                  </Modal>
+                        <th className="text-center text-nowrap">TourName</th>
+                        <th className="text-center text-nowrap">TourDate</th>
+                        <th className="text-center text-nowrap">
+                          Total Bookings
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reports.map((report) => renderReportRow(report))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+              )}
+            </div>
+            <div className="col-sm-4">
+              <form className="theme-form mega-form">
+                <Select
+                  placeholder="Select Bookings"
+                  value={report.data.bookingId.map((booking) => ({
+                    label:
+                      typeof booking === "object" &&
+                      booking.bokun.productName +
+                        " (" +
+                        moment(booking.bookingDate).format("DD/MM/YYYY") +
+                        " - " +
+                        booking.mainTraveller.firstname +
+                        " " +
+                        booking.mainTraveller.lastname +
+                        ")",
+                    value: typeof booking === "object" ? booking._id : "",
+                  }))}
+                  onChange={(e) =>
+                    handleProductNameForReport(
+                      e.map((item) => item.value ?? "")
+                    )
+                  }
+                  isMulti
+                  options={bookings.map((booking) => ({
+                    label:
+                      booking.productName +
+                      " (" +
+                      moment(booking.bookingDate).format("DD/MM/YYYY") +
+                      " - " +
+                      booking.mainTraveller.firstname +
+                      " " +
+                      booking.mainTraveller.lastname +
+                      ")",
+                    value: booking._id ?? "",
+                  }))}
+                  isDisabled={!!report.id} // Disable if report is already created
+                />
+                <div className="mb-3">
+                  <label className="form-label-title">
+                    1. Leave a feedback on this tour
+                  </label>
+                  <textarea
+                    className="form-control"
+                    value={report.data.feedback}
+                    onChange={(e) => handleReport("feedback", e.target.value)}
+                    disabled={report.id !== ""}
+                  />
+                </div>
+                <div className="mb-3 row">
+                  <div className="col-sm-6">
+                    <label className="form-label-title">
+                      2. When did the tour start?
+                    </label>
+                    <div className="d-flex align-items-center g-3">
+                      <select
+                        className="form-control"
+                        value={report.data.startTime}
+                        onChange={(e) =>
+                          handleReport("startTime", e.target.value)
+                        }
+                        disabled={report.id !== ""}
+                      >
+                        {timeOptions}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label-title">
+                      3. When did the tour end?
+                    </label>
+                    <div className="d-flex align-items-center g-3">
+                      <select
+                        className="form-control"
+                        value={report.data.endTime}
+                        onChange={(e) =>
+                          handleReport("endTime", e.target.value)
+                        }
+                        disabled={report.id !== ""}
+                      >
+                        {timeOptions}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-3 row">
+                  <div className="col-sm-6">
+                    <label className="form-label-title" htmlFor="breakTime">
+                      4. How long was your break?
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={24}
+                      className="form-control"
+                      value={report.data.break}
+                      onChange={(e) =>
+                        handleReport(
+                          "break",
+                          Math.max(0, Math.min(24, parseFloat(e.target.value)))
+                        )
+                      }
+                      disabled={report.id !== ""}
+                    />
+                  </div>
+                  <div className="col-sm-6">
+                    <label className="form-label-title">
+                      5. How much did you earn as tips?
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="form-control"
+                      value={report.data.earn}
+                      onChange={(e) =>
+                        handleReport(
+                          "earn",
+                          Math.max(0, parseFloat(e.target.value))
+                        )
+                      }
+                      disabled={report.id !== ""}
+                    />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label-title" htmlFor="files">
+                    6. Did you have any expenses? If so, upload the PDF here
+                  </label>
+                  {report.id === "" ? (
+                    <DropZoneCommon
+                      value={report.data.files}
+                      accept={{ "application/pdf": [] }}
+                      onFilesSelected={handleFilesSelected}
+                      multiple={false}
+                    />
+                  ) : (
+                    report.data.files[0] && (
+                      <div className="w-100">
+                        <Link
+                          className={`align-items-center justify-content-center btn btn-theme`}
+                          type="button"
+                          href={`${report.data.files[0]}`}
+                        >
+                          View PDF
+                        </Link>
+                      </div>
+                    )
+                  )}
+                </div>
+              </form>
+              {report.id === "" && (
+                <>
+                  <label className="form-label-title">
+                    <input
+                      className="checkbox_animated"
+                      type="checkbox"
+                      checked={report.check}
+                      onChange={(e) =>
+                        setReport({
+                          ...report,
+                          check: e.target.checked,
+                        })
+                      }
+                    />
+                    Send and can't update Report
+                  </label>
+                  <button
+                    type="button"
+                    className="btn btn-theme"
+                    onClick={saveReport}
+                    disabled={!report.check}
+                  >
+                    Save
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
+      <Modal isOpen={modalOpen} toggle={toggleModal} centered size="lg">
+        <ModalHeader toggle={toggleModal}></ModalHeader>
+        <ModalBody className="p-4"></ModalBody>
+        <ModalFooter>
+          <Button color="secondary" type="button" onClick={toggleModal}>
+            Cancel
+          </Button>
+          <Button color="primary" type="button" onClick={toggleModal}>
+            Update
+          </Button>
+        </ModalFooter>
+      </Modal>
     </RoleProvider>
   );
 };

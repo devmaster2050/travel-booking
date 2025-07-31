@@ -17,16 +17,17 @@ export interface OperationBookingState {
   }[];
 }
 
-export type OperationSearchState = {
+export interface OperationSearchState {
   type: string;
   year: string;
   quarter: string;
   month: string;
   week: string;
   day: string;
+  guider: string;
   sortField: string;
   sortOrder: string;
-};
+}
 
 export type OperationScheduleState = {
   year: number;

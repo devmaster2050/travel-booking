@@ -1,6 +1,10 @@
 "use client";
 import { AppDispatch } from "@/store";
-import { productsState } from "@/store/products";
+import {
+  getProductsAction,
+  getProductsAllAction,
+  productsState,
+} from "@/store/products";
 import {
   getProductRevenueAction,
   loadingState,
@@ -42,9 +46,15 @@ const Revenue = () => {
   const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
+    if (products.length < 2 || !Array.isArray(products))
+      dispatch(getProductsAllAction({ page: 1, perPage: 100 }));
+  }, []);
+
+  useEffect(() => {
     if (productId !== "") {
       (async () => {
-        await dispatch(getProductRevenueAction(productId)).then((res) => res);
+        const { payload } = await dispatch(getProductRevenueAction(productId));
+        console.log(payload);
       })();
     }
   }, [productId]);
@@ -88,7 +98,7 @@ const Revenue = () => {
                   aria-current="page"
                   onClick={() => setActiveTab(index)}
                 >
-                  {revenue.startingLocationId}
+                  {revenue.startingLocationId.destinationTitle}
                 </a>
               </li>
             ))}

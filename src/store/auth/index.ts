@@ -9,6 +9,7 @@ import {
   ResetPassword,
   TokenValid,
   botCheck,
+  suppilerInvoice,
 } from "@/store/auth/index.api";
 
 interface InitialState {
@@ -78,6 +79,11 @@ export const accountValidAction = createAsyncThunk(
 export const accountBotCheckAction = createAsyncThunk(
   "auth/login",
   errorHandler(botCheck)
+);
+
+export const suppilerInvoiceAction = createAsyncThunk(
+  "/auth/invoice",
+  errorHandler(suppilerInvoice)
 );
 
 const AuthReducers = createSlice({

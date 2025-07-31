@@ -7,10 +7,10 @@ import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/store";
 import {
-  getProductsAction,
   productsState,
   getProductIdAction,
   productLoadingState,
+  getProductsAllAction,
 } from "@/store/products";
 import {
   destinationLoadingState,
@@ -27,21 +27,24 @@ import PageLoader from "@/layouts/PageLoader";
 const Tours = () => {
   const dispatch = useDispatch<AppDispatch>();
   const getProducts = async () => {
-    await dispatch(getProductsAction({}));
+    await dispatch(getProductsAllAction({}));
     await dispatch(getDestinationTitlesAction({}));
   };
   useEffect(() => {
     if (products.length < 2 || !Array.isArray(products)) getProducts();
   }, []);
   const productLoading = useSelector(productLoadingState);
-  const products: readProductState[] = useSelector(productsState);
+  const products: readProductState[] = useSelector(productsState).filter(
+    (product) => product.isActive
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [data, setData] = useState({} as ProductDetailState);
   const toggleModal = () => setModalOpen(!modalOpen);
   const openModal = async (id: string) => {
     const { payload } = await dispatch(getProductIdAction(id));
+    console.log(payload);
     if (payload && !(payload as any).error) {
-      setData(payload as ProductDetailState);
+      setData(payload.data as ProductDetailState);
     }
     setModalOpen(true);
   };
@@ -77,14 +80,17 @@ const Tours = () => {
                             <CustomImage
                               src={`${product.image}`}
                               alt={`${product.image}`}
-                              className="img-fluid bg-img "
+                              className="img-fluid bg-img"
                             />
                           </div>
                           <div className="top-bar">
                             <span className="offer">{product.destination}</span>
                           </div>
                         </div>
-                        <div className="content-category h-50 d-flex flex-column">
+                        <div
+                          className="content-category d-flex flex-column"
+                          style={{ height: "18rem" }}
+                        >
                           <div className="top">
                             <h3
                               style={{ cursor: "pointer" }}
@@ -93,7 +99,7 @@ const Tours = () => {
                               {product.name}
                             </h3>
                           </div>
-                          <p>{product.description}</p>
+                          <p>{product.shortDescription}</p>
                           <div className="mt-auto">
                             <h6>
                               {product.minCost?.toLocaleString()}CHF
@@ -142,11 +148,11 @@ const Tours = () => {
               <div className="row g-2">
                 <div className="col-sm-12">
                   <p>Description:{data.description}</p>
-                  <p>
+                  {/* <p>
                     Private:{" "}
                     {data.isPrivate ? "Private Tour" : "Small Group Tour"}
-                  </p>
-                  <p>Members: {data.members}</p>
+                  </p> */}
+                  <p>Tour Count: {data.tours?.length ?? 0}</p>
                   <div className="d-flex align-items-start justify-content-start">
                     <div>
                       <p>Inclusions:</p>

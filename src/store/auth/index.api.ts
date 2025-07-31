@@ -101,3 +101,7 @@ export const botCheck = async (recaptchaToken: string) => {
     .post("/api/users/botcheck", { recaptchaToken })
     .then((res) => res.data);
 };
+
+export const suppilerInvoice = async (id: string) => {
+  return await api.get(`/api/users/supplier/${id}`).then((res) => res.data);
+};

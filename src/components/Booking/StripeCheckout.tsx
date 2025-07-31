@@ -104,10 +104,20 @@ function StripeCheckout({
   product,
   booking,
   clientSecret,
+  price,
 }: {
   product: ProductDetailState;
   booking: BookingType;
   clientSecret: string;
+  price: {
+    totalPrice: number;
+    adultPrice: number;
+    childPrice: number;
+    fee: number;
+    travelFee: number;
+    travelPercent: number;
+    feePercent: number;
+  };
 }) {
   const stripeOptions = {
     clientSecret,
@@ -117,48 +127,18 @@ function StripeCheckout({
       paymentMethodTypes: ["card"],
     },
   };
-  const { name, revenues, startingLocations } = product;
-  const { adultCount, childCount, infantCount, startingLocationId } =
-    booking.bookingDetails;
-  const Cost = revenues?.find(
-    (item) => item.startingLocationId === startingLocationId
-  );
-  const userRole = useSelector(userState).role;
-
-  const margins = useSelector(marginState);
-  const calculateMargin = (startingLocation: string) => {
-    if (!Array.isArray(startingLocations)) {
-      return 0;
-    }
-    const duration = Number(
-      startingLocations.find((location) => location._id === startingLocation)
-        ?.durationHours ?? 0
-    );
-    if (duration >= 1 && duration < 5) {
-      return parseFloat(margins.shortMarkup);
-    } else if (duration >= 5 && duration < 10) {
-      return parseFloat(margins.mediumMarkup);
-    } else {
-      return parseFloat(margins.longMarkup);
-    }
-  };
-
-  const feePercent =
-    userRole === "Travel Agent"
-      ? useSelector(selectedAgent).travelAgentProfile?.percent ?? 5
-      : 0;
-
-  const adultPrice =
-    Number(adultCount) *
-    ((Cost?.totalBulkCost ?? 0) + (Cost?.totalIndividualCost ?? 0));
-
-  const childPrice = Number(childCount) * Number(Cost?.childrenCost);
-
-  const totalPrice =
-    (adultPrice + childPrice) * calculateMargin(Cost?.startingLocationId ?? "");
-
-  const fee = (totalPrice * feePercent) / 100;
-
+  const { name } = product;
+  const { adultCount, childCount, infantCount, promoPercent } = booking;
+  const {
+    totalPrice,
+    adultPrice,
+    childPrice,
+    fee,
+    travelFee,
+    travelPercent,
+    feePercent,
+  } = price;
+  const convertTwoDecimal = (value: number) => Math.round(value * 100) / 100;
   return (
     <>
       {clientSecret ? (
@@ -168,7 +148,7 @@ function StripeCheckout({
               <div className="pricing-container">
                 <div className="pricing-header">
                   <h6 style={{ color: "grey" }}>{name}</h6>
-                  <h3 className="price">CHF {(totalPrice + fee).toFixed(2)}</h3>
+                  <h3 className="price">CHF {convertTwoDecimal(totalPrice)}</h3>
                 </div>
 
                 <div className="pricing-details">
@@ -176,17 +156,17 @@ function StripeCheckout({
                     <div className="d-flex mt-3">
                       <div>
                         <span style={{ fontWeight: "bold", display: "block" }}>
-                          Adult x {booking.bookingDetails.adultCount}
+                          Adult x {adultCount}
                         </span>
                       </div>
                       <span style={{ flex: "1 1 auto" }}></span>
                       <span style={{ fontWeight: "bold" }}>
                         CHF{" "}
-                        {Math.ceil(
+                        {convertTwoDecimal(
                           adultPrice *
-                            100 *
-                            calculateMargin(Cost?.startingLocationId ?? "")
-                        ) / 100}
+                            (1 - feePercent - travelPercent) *
+                            (1 - promoPercent)
+                        )}
                       </span>
                     </div>
                   )}
@@ -194,17 +174,17 @@ function StripeCheckout({
                     <div className="d-flex mt-1">
                       <div>
                         <span style={{ fontWeight: "bold", display: "block" }}>
-                          Child x {booking.bookingDetails.childCount}
+                          Child x {childCount}
                         </span>
                       </div>
                       <span style={{ flex: "1 1 auto" }}></span>
                       <span style={{ fontWeight: "bold" }}>
                         CHF{" "}
-                        {Math.ceil(
+                        {convertTwoDecimal(
                           childPrice *
-                            100 *
-                            calculateMargin(Cost?.startingLocationId ?? "")
-                        ) / 100}
+                            (1 - feePercent - travelPercent) *
+                            (1 - promoPercent)
+                        )}
                       </span>
                     </div>
                   )}
@@ -212,14 +192,25 @@ function StripeCheckout({
                     <div className="d-flex mt-1">
                       <div>
                         <span style={{ fontWeight: "bold", display: "block" }}>
-                          Infant x {booking.bookingDetails.infantCount}
+                          Infant x {infantCount}
                         </span>
                       </div>
                       <span style={{ flex: "1 1 auto" }}></span>
                       <span style={{ fontWeight: "bold" }}>CHF 0.00</span>
                     </div>
                   )}
-                  {userRole === "Travel Agent" && (
+                  <div className="d-flex mt-1">
+                    <div>
+                      <span style={{ fontWeight: "bold", display: "block" }}>
+                        Booking Fee
+                      </span>
+                    </div>
+                    <span style={{ flex: "1 1 auto" }}></span>
+                    <span style={{ fontWeight: "bold" }}>
+                      CHF {convertTwoDecimal(fee)}
+                    </span>
+                  </div>
+                  {travelPercent > 0 && (
                     <div className="d-flex mt-1">
                       <div>
                         <span style={{ fontWeight: "bold", display: "block" }}>
@@ -228,7 +219,7 @@ function StripeCheckout({
                       </div>
                       <span style={{ flex: "1 1 auto" }}></span>
                       <span style={{ fontWeight: "bold" }}>
-                        CHF {fee.toFixed(2)}
+                        CHF {convertTwoDecimal(travelFee)}
                       </span>
                     </div>
                   )}
@@ -238,7 +229,7 @@ function StripeCheckout({
                       <span style={{ fontWeight: "bold" }}>Subtotal</span>
                       <span style={{ flex: "1 1 auto" }}></span>
                       <span style={{ fontWeight: "bold" }}>
-                        CHF {Math.ceil((totalPrice + fee) * 100) / 100}
+                        CHF {convertTwoDecimal(totalPrice)}
                       </span>
                     </div>
                   </div>

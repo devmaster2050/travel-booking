@@ -23,6 +23,7 @@ export interface MenuItem {
     | "Settings"
     | "LogIn"
     | "PlusCircle"
+    | "Gift"
     | "Star";
   type: "link" | "sub";
   menu?: MenuItem[];

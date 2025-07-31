@@ -5,13 +5,11 @@ export interface readReportState {
     name: string;
   };
   bookingId: {
+    bokun?: { isPrivate: boolean; productName: string };
     _id: string;
     bookingDate: string;
     startTime: string;
-    mainTraveller: {
-      email: string;
-    };
-  };
+  }[];
   createdBy: {
     _id: string;
     firstname: string;
@@ -21,7 +19,41 @@ export interface readReportState {
 
 export interface reportState {
   productId: string | { _id: string; name: string; isPrivate: boolean };
-  bookingId: string;
+  bookingId:
+    | {
+        accountName: string;
+        adultCount: number;
+        amount: number;
+        bokun: {
+          productName: string;
+          isPrivate: boolean;
+        };
+        bookingDate: string;
+        childCount: number;
+        createdAt: string;
+        driver: null | string;
+        guide: string;
+        infantCount: number;
+        mainTraveller: {
+          country: string;
+          email: string;
+          emailMeNews: boolean;
+          firstname: string;
+          lastname: string;
+          phoneNumber: string;
+        };
+        meetingLocation: string;
+        otaId: string;
+        otaType: string;
+        otherTravellers: string[];
+        paymentIntent: string[];
+        startTime: string;
+        status: string;
+        updatedAt: string;
+        __v: number;
+        _id: string;
+      }[]
+    | string[];
   earn: number;
   break: number;
   feedback: string;

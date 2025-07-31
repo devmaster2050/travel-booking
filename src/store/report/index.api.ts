@@ -10,7 +10,7 @@ export const createReport = async (data: reportState) => {
       ? data.productId
       : JSON.stringify(data.productId)
   );
-  formData.append("bookingId", data.bookingId);
+  formData.append("bookingId", JSON.stringify(data.bookingId));
   formData.append("earn", `${data.earn}`);
   formData.append("break", `${data.break}`);
   formData.append("startTime", data.startTime);

@@ -1,0 +1,59 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Build Next.js Project
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          npm run build
+
+      - name: Deploy to AWS EC2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "eu-west-3" # Change to your region
+          EC2_IP_MAIN: "" # Replace with your EC2 instance's public IP
+          EC2_IP_DEV: "" # Replace with your EC2 instance's public IP
+          EC2_USER: "ec2-user" # Change if you're using a different EC2 user (e.g., ubuntu)
+          PRIVATE_KEY_PATH: ${{ secrets.EC2_PRIVATE_KEY }} # Make sure you set your private key secret
+
+        run: |
+          # Setup SSH to connect to EC2
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            EC2_IP=$EC2_IP_MAIN
+          elif [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+            EC2_IP=$EC2_IP_DEV
+          fi
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts
+
+          # Sync project files to EC2
+          rsync -avz ./ $EC2_USER@$EC2_IP:/var/www/admin-portal-next
+
+          # SSH into EC2 and run the start server script or PM2
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP << 'EOF'
+            cd /var/www/admin-portal-next
+            git pull origin main  # Pull the latest changes from the repo
+            npm install  # Install dependencies on the server (if needed)
+            npm run build  # Build the project again on the server (if needed)
+            pm2 restart all || pm2 start npm --name "admin-portal-next" -- start  # Restart or start the app with PM2
+          EOF

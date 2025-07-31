@@ -38,5 +38,6 @@ export const config = {
     "/cab/:path*",
     "/customers/:path*",
     "/travelagent/:path*",
+    "/invoice/:path*",
   ],
 };

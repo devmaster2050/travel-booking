@@ -27,15 +27,19 @@ import PurePagination from "@/Common/PurePagination";
 function page() {
   const dispatch = useDispatch<AppDispatch>();
   const loading = useSelector(OperationLoading);
-  const [search, setSearch] = useState<OperationSearchState>({
+  const initialSearchDate = {
     type: "month",
     year: new Date().getFullYear().toString(),
     quarter: "",
     month: (new Date().getMonth() + 1).toString(),
     week: "",
     day: "",
+  };
+  const [search, setSearch] = useState<OperationSearchState>({
+    ...initialSearchDate,
     sortField: "",
     sortOrder: "",
+    guider: "",
   });
   const [bookings, setBookings] = useState<{
     data: OperationBookingState[];
@@ -49,17 +53,15 @@ function page() {
     totalPages: 0,
   });
 
+  const { type, year, month, sortField, sortOrder } = search;
   const { data, page, perPage, totalPages } = bookings;
   const [roleMembers, setRoleMembers] = useState<RoleMembersState[]>([]);
   const [inMonth, setInMonth] = useState({ weeks: 5, days: 31 });
 
-  const trustSearch = useMemo(() => search, [search]);
-
   const fetchOperationBookings = async () => {
     const { payload } = await dispatch(
-      getOperaionBookingsAction({ ...trustSearch, page: page, limit: perPage })
+      getOperaionBookingsAction({ ...search, page: page, limit: perPage })
     );
-    console.log(payload);
     if (payload?.["data"]) {
       setBookings((pre) => ({ ...pre, ...payload }));
     } else {
@@ -82,17 +84,24 @@ function page() {
 
   useEffect(() => {
     fetchOperationBookings();
+    console.log("search", search);
     fetchEmployeesWithRole();
-  }, [trustSearch, page, perPage]);
+  }, [search, page, perPage]);
 
   const handleSearchTypeChange = (value: string) => {
+    const defaults: Record<string, Partial<typeof search>> = {
+      quarter: { quarter: "1" },
+      month: { month: "1" },
+      week: { week: "1", month },
+      day: { day: "1", month },
+    };
+
     setSearch((prevDate) => ({
       ...prevDate,
+      ...initialSearchDate,
       type: value,
-      quarter: value === "quarter" ? "1" : "",
-      month: value !== "quarter" ? "1" : "",
-      week: value === "week" ? "1" : "",
-      day: value === "day" ? "1" : "",
+      year,
+      ...defaults[value],
     }));
   };
 
@@ -143,7 +152,7 @@ function page() {
       const weeks = Math.ceil(daysInMonth / 7);
       setInMonth((prev) => ({ ...prev, weeks }));
     },
-    [search.month, search.year]
+    [month, year]
   );
 
   const calculateDaysInMonth = useCallback(
@@ -151,7 +160,7 @@ function page() {
       const days = moment(`${year}-${month}`, "YYYY-MM").daysInMonth();
       setInMonth((prev) => ({ ...prev, days }));
     },
-    [search.month, search.year]
+    [month, year]
   );
 
   const handlePages = (type: string, value: number | string) => {
@@ -161,12 +170,29 @@ function page() {
   };
 
   useEffect(() => {
-    if (search.type === "week") {
-      calculateWeeksInMonth(search.month, search.year);
-    } else if (search.type === "day") {
-      calculateDaysInMonth(search.month, search.year);
+    if (type === "week") {
+      calculateWeeksInMonth(month, year);
+    } else if (type === "day") {
+      calculateDaysInMonth(month, year);
     }
-  }, [search.month, search.year, search.type]);
+  }, [month, year, type]);
+
+  const handleSortOrder = (item: string) => {
+    if (!sortField && !sortOrder) {
+      setSearch({ ...search, sortField: item, sortOrder: "asc" });
+    } else if (sortField === item) {
+      const nextOrder =
+        sortOrder === "asc" ? "desc" : sortOrder === "desc" ? "" : "asc";
+
+      setSearch({
+        ...search,
+        sortField: nextOrder ? sortField : "",
+        sortOrder: nextOrder,
+      });
+    } else {
+      setSearch({ ...search, sortField: item, sortOrder: "asc" });
+    }
+  };
 
   return (
     <RoleProvider target="Operation">
@@ -188,6 +214,7 @@ function page() {
             search,
             setSearch,
             roleMembers,
+            handleSortOrder,
             onChangeGuideAndDriver,
           }}
         />

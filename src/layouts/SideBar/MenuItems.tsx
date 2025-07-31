@@ -41,12 +41,6 @@ export const MENUITEMS: MenuItem[] = [
     ],
   },
   {
-    title: "Tour Area",
-    icon: "Target",
-    type: "sub",
-    menu: [{ url: "/tours/view", title: "Available Tours", type: "link" }],
-  },
-  {
     title: "Booking Area",
     icon: "Briefcase",
     type: "sub",
@@ -57,12 +51,18 @@ export const MENUITEMS: MenuItem[] = [
     ],
   },
   {
+    title: "Promo Code",
+    icon: "Gift",
+    type: "link",
+    url: "/promo",
+  },
+  {
     title: "Financial Area",
     icon: "Star",
     type: "sub",
     menu: [
       { url: "/financial/revenue", title: "Revenue", type: "link" },
-      { url: "/financial/invoices", title: "Generated Invoices", type: "link" },
+      { url: "/financial/invoices", title: "Invoice Center", type: "link" },
       { url: "/financial/costcenter", title: "Cost Center", type: "link" },
       { url: "/financial/payroll", title: "Payroll", type: "link" },
       { url: "/financial/reporting", title: "Reporting", type: "link" },

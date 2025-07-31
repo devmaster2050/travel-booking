@@ -43,18 +43,10 @@ export interface CreateReportFailure {
   error: string;
 }
 
-export type OperationSearch = {
-  type: string;
-  year: string;
-  quarter: string;
-  month: string;
-  week: string;
-  day: string;
+export interface OperationSearch extends OperationSearchState {
   page: number;
   limit: number;
-  sortField: string;
-  sortOrder: string;
-};
+}
 
 export const getOperaionBookings = async (data: OperationSearch) => {
   return await api
@@ -66,6 +58,7 @@ export const getOperaionBookings = async (data: OperationSearch) => {
         week: data.week,
         day: data.day,
         page: data.page,
+        guider: data.guider,
         limit: data.limit,
         sortField: data.sortField,
         sortOrder: data.sortOrder,

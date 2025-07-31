@@ -194,29 +194,29 @@ export const BOOKINGSTEPS: string[] = [
 ];
 
 export const PAYROLLSTEPS = [
+  // {
+  //   count: 0,
+  //   label: "Employees",
+  //   sub: [
+  //     { count: 10, label: "Personal Information" },
+  //     { count: 11, label: "Employment" },
+  //     { count: 12, label: "Bank Details" },
+  //     { count: 13, label: "Insurance" },
+  //     { count: 14, label: "Source Tax" },
+  //   ],
+  // },
   {
     count: 0,
-    label: "Employees",
-    sub: [
-      { count: 10, label: "Personal Information" },
-      { count: 11, label: "Employment" },
-      { count: 12, label: "Bank Details" },
-      { count: 13, label: "Insurance" },
-      { count: 14, label: "Source Tax" },
-    ],
-  },
-  {
-    count: 1,
     label: "Company",
     sub: [
-      { count: 20, label: "Master Data" },
-      { count: 21, label: "Insurances" },
-      { count: 22, label: "Wage Types" },
-      { count: 23, label: "Account Plan" },
+      { count: 10, label: "Master Data" },
+      { count: 11, label: "Insurances" },
+      { count: 12, label: "Wage Types" },
+      { count: 13, label: "Account Plan" },
     ],
   },
-  { count: 2, label: "Salary Slip" },
-  { count: 3, label: "Statistics" },
+  { count: 1, label: "Salary Slip" },
+  { count: 2, label: "Statistics" },
 ];
 
 export const RELIGIONS: string[] = [
@@ -305,17 +305,17 @@ export const TYPEOFINCOMES = [
 ];
 
 export const OperationTableHeaderTitles = [
-  { title: "Date", sortField: "date" },
-  { title: "Client", sortField: "client" },
-  { title: "Source", sortField: "source" },
-  { title: "Tour", sortField: "tour" },
-  { title: "Time Booked", sortField: "timeBooked" },
-  { title: "PAX", sortField: "PAX" },
-  { title: "Tour Start", sortField: "tourStart" },
-  { title: "Meeting Location", sortField: "meetingLocation" },
-  { title: "Guide", sortField: "guide" },
-  { title: "Driver", sortField: "driver" },
-  { title: "Status", sortField: "status" },
+  { label: "Date", sortField: "bookingDate" },
+  { label: "Client", sortField: "mainTraveller.firstname" },
+  { label: "Source", sortField: "otaType" },
+  { label: "Tour", sortField: "bokun.productName" },
+  { label: "Time Booked", sortField: "createdAt" },
+  { label: "PAX", sortField: "startTime" },
+  { label: "Tour Start", sortField: "startTime" },
+  { label: "Meeting Location", sortField: "meetingLocation" },
+  { label: "Guide", sortField: "guide.firstname" },
+  { label: "Driver", sortField: "driver.firstname" },
+  { label: "Status", sortField: "status" },
 ];
 
 export const tourofTypes = [

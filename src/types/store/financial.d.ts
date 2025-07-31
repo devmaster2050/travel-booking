@@ -35,7 +35,10 @@ export interface revenue {
   earnings: number;
   fixedCostMarkup: number;
   guideCost: number;
-  startingLocationId: string;
+  startingLocationId: {
+    destinationTitle: string;
+    _id: string;
+  };
   totalBulkCost: number;
   totalFixedCost: number;
   totalIndividualCost: number;

@@ -17,6 +17,13 @@ import {
   GetProductRevenue,
   UpdateMargin,
   UpdateOTA,
+  getForInvoices,
+  getForInvoice,
+  createInvoice,
+  getInvoices,
+  deleteInvoice,
+  getMailInvoice,
+  createMailInvoice,
 } from "@/store/financial/index.api";
 
 const initialState: initialStateType = {
@@ -66,6 +73,41 @@ export const updateOTAAction = createAsyncThunk(
 export const deleteOTAAction = createAsyncThunk(
   "/ota/delete/id",
   errorHandler(DeleteOTA)
+);
+
+export const getForInvoicesAction = createAsyncThunk(
+  "/invoice/bookings",
+  errorHandler(getForInvoices)
+);
+
+export const getForInvoiceAction = createAsyncThunk(
+  "/invoice/booking",
+  errorHandler(getForInvoice)
+);
+
+export const createInvoiceAction = createAsyncThunk(
+  "/invoice/create",
+  errorHandler(createInvoice)
+);
+
+export const getInvoicesAction = createAsyncThunk(
+  "/invoice/get/all",
+  errorHandler(getInvoices)
+);
+
+export const deleteInvoiceAction = createAsyncThunk(
+  "/invoice/delete",
+  errorHandler(deleteInvoice)
+);
+
+export const getMailInvoiceAction = createAsyncThunk(
+  "/mail/invoice",
+  errorHandler(getMailInvoice)
+);
+
+export const createMailInvoiceAction = createAsyncThunk(
+  "/mail/invoice/create",
+  errorHandler(createMailInvoice)
 );
 
 const FinancialReducers = createSlice({
@@ -122,6 +164,15 @@ const FinancialReducers = createSlice({
         state.loading = false;
       })
       .addCase(deleteOTAAction.rejected, (state) => {
+        state.loading = false;
+      })
+      .addCase(createMailInvoiceAction.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(createMailInvoiceAction.fulfilled, (state, action) => {
+        state.loading = false;
+      })
+      .addCase(createMailInvoiceAction.rejected, (state) => {
         state.loading = false;
       });
   },

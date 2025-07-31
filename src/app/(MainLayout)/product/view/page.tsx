@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import ReadProducts from "@/components/Product/ReadProducts";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch } from "@/store";
-import { getProductsAction, productsState } from "@/store/products";
+import { getProductsAllAction, productsState } from "@/store/products";
 import { getDestinationTitlesAction } from "@/store/destination";
 import RoleProvider from "@/providers/RoleProvider";
 import { readProductState } from "@/types/store/products";
@@ -11,7 +11,8 @@ import { readProductState } from "@/types/store/products";
 const ReadAllProducts = () => {
   const dispatch = useDispatch<AppDispatch>();
   const getProducts = async () => {
-    await dispatch(getProductsAction({}));
+    const { payload } = await dispatch(getProductsAllAction({}));
+    console.log(payload);
   };
   const [deleted, setDeleted] = useState(false);
   useEffect(() => {

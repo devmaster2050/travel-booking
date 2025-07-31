@@ -10,12 +10,12 @@ import {
   getBookingsAction,
 } from "@/store/booking";
 import { toast } from "react-toastify";
-import { Modal, ModalHeader, ModalBody, ModalFooter, Button } from "reactstrap";
+import { Modal, ModalHeader, ModalFooter, Button } from "reactstrap";
 import PageLoader from "@/layouts/PageLoader";
 import RoleProvider from "@/providers/RoleProvider";
 import { BookingDetails } from "@/types/store/booking";
 import moment from "moment";
-import { getProductsAction, productsState } from "@/store/products";
+import { getProductsAllAction } from "@/store/products";
 import PurePagination from "@/Common/PurePagination";
 
 const MyBooking = () => {
@@ -51,7 +51,7 @@ const MyBooking = () => {
   };
 
   useEffect(() => {
-    dispatch(getProductsAction({}));
+    dispatch(getProductsAllAction({}));
   }, []);
 
   useEffect(() => {
@@ -158,7 +158,7 @@ const MyBooking = () => {
                     <tbody>
                       {loading ? (
                         <tr>
-                          <td colSpan={7}>
+                          <td colSpan={8}>
                             <PageLoader />
                           </td>
                         </tr>

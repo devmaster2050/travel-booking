@@ -8,6 +8,7 @@ import {
   deleteProduct,
   getProductId,
   getProducts,
+  getProductsAll,
   handleLiveStatus,
   updateProduct,
 } from "@/store/products/index.api";
@@ -49,6 +50,11 @@ export const handleLiveStatusAction = createAsyncThunk(
   errorHandler(handleLiveStatus)
 );
 
+export const getProductsAllAction = createAsyncThunk(
+  "/products/read/all/nopages",
+  errorHandler(getProductsAll)
+);
+
 const ProductsReducers = createSlice({
   name: "ProductsReducers",
   initialState,
@@ -77,8 +83,8 @@ const ProductsReducers = createSlice({
         state.loading = true;
       })
       .addCase(getProductsAction.fulfilled, (state, action) => {
-        state.loading = false;
         state.products = action.payload.data;
+        state.loading = false;
       })
       .addCase(getProductsAction.rejected, (state) => {
         state.loading = false;
@@ -91,6 +97,16 @@ const ProductsReducers = createSlice({
         state.productLoading = false;
       })
       .addCase(getProductIdAction.rejected, (state) => {
+        state.productLoading = false;
+      })
+      .addCase(getProductsAllAction.pending, (state) => {
+        state.productLoading = true;
+      })
+      .addCase(getProductsAllAction.fulfilled, (state, action) => {
+        state.products = action.payload.data;
+        state.productLoading = false;
+      })
+      .addCase(getProductsAllAction.rejected, (state) => {
         state.productLoading = false;
       });
   },

@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/store";
 
 import ReadContacts from "@/components/contacts/ReadContacts";
@@ -16,7 +16,6 @@ import {
 import { AddressType, ContactType } from "@/types/store/contacts";
 import { initalContact } from "./InitialContactState";
 import NewContactModal from "@/components/contacts/NewContactModal";
-import DropZoneCommon from "@/Common/DropZoneCommon";
 
 function page() {
   const dispatch = useDispatch<AppDispatch>();
@@ -167,6 +166,7 @@ function page() {
       setContacts({ ...contacts, sort: item, order: "asc" });
     }
   };
+
   return (
     <RoleProvider target="Contact Area">
       <div className="card">

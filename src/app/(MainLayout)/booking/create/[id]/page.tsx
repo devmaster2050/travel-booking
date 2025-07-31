@@ -1,7 +1,6 @@
 "use client";
-import React, { useEffect } from "react";
+import React from "react";
 import { useParams } from "next/navigation";
-
 import BookingStart from "@/components/Booking/BookingStart";
 import GiftCard from "@/components/Booking/GiftCard";
 import ContactDetails from "@/components/Booking/ContactDetails";
@@ -14,6 +13,10 @@ import LoadingAuthButton from "@/Common/LoadingAuthButton";
 import { BOOKINGSTEPS } from "@/constants/data";
 import { useAllStatusBooking } from "@/hooks/UseBooking";
 import TopSteps from "@/app/(MainLayout)/booking/common/TopSteps";
+import { useSelector } from "react-redux";
+import { marginState } from "@/store/financial";
+import { userState } from "@/store/auth";
+import { selectedAgent } from "@/store/travelAgent";
 
 const page = () => {
   const { id } = useParams();
@@ -25,9 +28,8 @@ const page = () => {
     booking,
     checkout,
     clientSecret,
-    currentStep,
-    maxStepReached,
-    setCurrentStep,
+    step,
+    setStep,
     onStepClick,
     handleBookingDetails,
     handleBookingMintraveler,
@@ -36,7 +38,48 @@ const page = () => {
     handleCheckout,
     isButtonDisabled,
     handleStepAdvance,
+    promo,
+    setPromo,
+    applyPromo,
   } = useAllStatusBooking(id as string, "create");
+  const { tours } = product;
+  const { adultCount, childCount, tourId, promoPercent } = booking;
+
+  const tour = tours?.find((tour) => tour._id === tourId);
+
+  const feePercent = 0.03;
+  const travelPercent =
+    useSelector(userState).role === "Travel Agent"
+      ? useSelector(selectedAgent).travelAgentProfile?.percent ?? 0.04
+      : 0;
+
+  const margins = useSelector(marginState);
+  const calculateMargin = (duration: number) => {
+    if (duration >= 1 && duration < 5) {
+      return parseFloat(margins.shortMarkup);
+    } else if (duration >= 5 && duration < 10) {
+      return parseFloat(margins.mediumMarkup);
+    } else {
+      return parseFloat(margins.longMarkup);
+    }
+  };
+
+  const adultPrice =
+    Number(adultCount) *
+    (Number(tour?.revenue.totalBulkCost ?? 0) +
+      Number(tour?.revenue.totalIndividualCost ?? 0)) *
+    calculateMargin(Number(tour?.duration));
+
+  const childPrice =
+    Number(childCount) *
+    Number(tour?.revenue.childrenCost) *
+    calculateMargin(Number(tour?.duration));
+
+  const totalPrice = (adultPrice + childPrice) * (1 - promoPercent);
+
+  const bookingPrice = (1 - feePercent - travelPercent) * totalPrice;
+  const fee = totalPrice * feePercent;
+  const travelFee = totalPrice * travelPercent;
 
   return (
     <RoleProvider target="Booking">
@@ -44,14 +87,14 @@ const page = () => {
         <div className="card-header">
           <h4>Booking</h4>
         </div>
-        {currentStep > -1 && currentStep < BOOKINGSTEPS.length && (
-          <TopSteps {...{ currentStep, maxStepReached, setCurrentStep }} />
+        {step.current > -1 && step.current < BOOKINGSTEPS.length && (
+          <TopSteps {...{ step, setStep }} />
         )}
         {productLoading || destinationLoading ? (
           <PageLoader />
         ) : (
           <div className="card-body">
-            {currentStep === -1 && (
+            {step.current === -1 && (
               <BookingStart
                 {...{
                   product,
@@ -61,77 +104,109 @@ const page = () => {
                 }}
               />
             )}
-            {currentStep !== -1 && (
+            {step.current !== -1 && (
               <div className="d-flex row">
                 <div
                   className={
-                    currentStep < BOOKINGSTEPS.length ? `col-sm-8` : ``
+                    step.current < BOOKINGSTEPS.length ? `col-sm-8` : ``
                   }
                 >
-                  {currentStep === 0 && (
+                  {step.current === 0 && (
                     <ContactDetails
                       {...{
-                        mainTraveller: booking.bookingDetails.mainTraveller,
+                        mainTraveller: booking.mainTraveller,
                         updateNestedBookingDetails,
                         handleBookingMintraveler,
                       }}
                     />
                   )}
-                  {currentStep === 1 && (
+                  {step.current === 1 && (
                     <TourBooking
                       {...{
                         product,
-                        bookingDetail: booking.bookingDetails,
+                        bookingDetail: booking,
                         handleBookingDetails,
                         updateNestedBookingDetails,
                         updateBookingDetails,
                       }}
                     />
                   )}
-                  {currentStep === 2 && (
+                  {step.current === 2 && (
                     <BookingReview
                       {...{ product, booking, checkout, handleCheckout }}
                     />
                   )}
-                  {currentStep === 3 &&
+                  {step.current === 3 &&
                     (clientSecret.length === 0 ? (
                       <PageLoader />
                     ) : (
-                      <StripeCheckout {...{ product, booking, clientSecret }} />
+                      <StripeCheckout
+                        {...{
+                          product,
+                          booking,
+                          clientSecret,
+                          price: {
+                            totalPrice,
+                            adultPrice,
+                            childPrice,
+                            fee,
+                            travelFee,
+                            travelPercent,
+                            feePercent,
+                          },
+                        }}
+                      />
                     ))}
                   <div
                     className={`text-end my-3 ${
-                      currentStep < BOOKINGSTEPS.length ? "" : "mx-5"
+                      step.current < BOOKINGSTEPS.length ? "" : "mx-5"
                     }`}
                   >
                     <LoadingAuthButton
                       {...{
                         classes: `btn btn-outline-past ${
-                          currentStep === BOOKINGSTEPS.length - 1 && "w-100"
+                          step.current === BOOKINGSTEPS.length - 1 && "w-100"
                         } }`,
                         onFunc: handleStepAdvance,
                         disabled:
-                          currentStep > BOOKINGSTEPS.length ||
+                          step.current > BOOKINGSTEPS.length ||
                           isButtonDisabled() ||
                           checkout,
                         loading: isLoading,
                         title:
-                          currentStep === BOOKINGSTEPS.length - 1
+                          step.current === BOOKINGSTEPS.length - 1
                             ? "Go to secure checkout"
-                            : currentStep < BOOKINGSTEPS.length
+                            : step.current < BOOKINGSTEPS.length
                             ? "Continue"
                             : "Pay for Booking",
                         style:
-                          currentStep < BOOKINGSTEPS.length
+                          step.current < BOOKINGSTEPS.length
                             ? { display: "" }
                             : { display: "none" },
                       }}
                     />
                   </div>
                 </div>
-                {currentStep < BOOKINGSTEPS.length && (
+                {step.current < BOOKINGSTEPS.length && (
                   <div className="col-sm-4">
-                    <GiftCard {...{ product, booking }} />
+                    <GiftCard
+                      {...{
+                        product,
+                        booking,
+                        promo,
+                        setPromo,
+                        applyPromo,
+                        price: {
+                          totalPrice,
+                          bookingPrice,
+                          adultPrice,
+                          childPrice,
+                          fee,
+                          travelFee,
+                          travelPercent,
+                        },
+                      }}
+                    />
                   </div>
                 )}
               </div>

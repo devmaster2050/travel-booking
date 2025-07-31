@@ -18,32 +18,45 @@ function ReadOperations({
   search,
   setSearch,
   roleMembers,
+  handleSortOrder,
   onChangeGuideAndDriver,
 }: {
   trustBookings: OperationBookingState[];
   search: OperationSearchState;
   setSearch: Dispatch<SetStateAction<OperationSearchState>>;
   roleMembers: RoleMembersState[];
+  handleSortOrder: (item: string) => void;
   onChangeGuideAndDriver: (data: GuideAndDriverState) => void;
 }) {
   const isLoading = useSelector(OperationLoading);
   const guides = roleMembers.filter((member) => member.role === "Guide");
   const drivers = roleMembers.filter((member) => member.role === "Driver");
   const exceptGuides = trustBookings?.map((item) => item.exceptGuide).flat();
+
+  const { sortField, sortOrder } = search;
   return (
     <div className="table-responsive">
       <table className="user-table table">
         <thead>
           <tr>
-            {OperationTableHeaderTitles.map(
-              (item: { title: string; sortField: string }, index: number) => (
-                <th className="text-center text-nowrap" key={index}>
-                  <div className="d-flex justify-content-center align-items-center">
-                    {item.title}
-                  </div>
-                </th>
-              )
-            )}
+            {OperationTableHeaderTitles.map((title, index) => (
+              <th
+                key={index}
+                className="text-center text-nowrap"
+                style={{ cursor: "pointer" }}
+                onClick={() => handleSortOrder(title.sortField)}
+              >
+                <div className="d-flex justify-content-center align-items-center">
+                  {title.label}
+                  {title.sortField === sortField && sortOrder === "asc" && (
+                    <FaSortUp className="mt-2" />
+                  )}
+                  {title.sortField === sortField && sortOrder === "desc" && (
+                    <FaSortDown className="mb-2" />
+                  )}
+                </div>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
